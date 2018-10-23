@@ -31,7 +31,17 @@ public class Framework {
       public boolean isSetE();
     }
   
+    public interface Bus {
+      public void signalIRQ(boolean state);
+      public void signalFIRQ(boolean state);
+      public void signalNMI(boolean state);
+      public boolean isIRQActive();
+      public boolean isNMIActive();
+      public boolean isFIRQActive();
+    }
+    
     public class TestCPU extends Cpu6809SingleCycle {
+      
       GetSetInt u = new GetSetInt() {
         public int intValue() {
           return getUserStackPointer();
@@ -151,6 +161,29 @@ public class Framework {
             
       public int read(int address) {
         return fetch(address);
+      }
+      
+      public Bus getBus() {
+        return new Bus() {
+          public void signalIRQ(boolean state) {
+            TestCPU.this.signalIRQ(state);
+          }
+          public void signalFIRQ(boolean state) {
+            TestCPU.this.signalFIRQ(state);
+          }
+          public void signalNMI(boolean state) {
+            TestCPU.this.signalNMI(state);
+          }
+          public boolean isIRQActive() {
+            return TestCPU.this.isIRQActive();
+          }
+          public boolean isNMIActive() {
+            return TestCPU.this.isNMIActive();
+          }
+          public boolean isFIRQActive() {
+            return TestCPU.this.isFIRQActive();
+          }
+        };
       }
     }
 

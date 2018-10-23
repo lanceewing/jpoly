@@ -125,7 +125,7 @@ Thumbs.db
 /ios-moe/xcode/native/
 
 # Experimental classes
-
+core/src/emu/jpoly/cpu/experimental/*
 
 # Disks
 /android/assets/disks/*

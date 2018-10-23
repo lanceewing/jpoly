@@ -143,6 +143,11 @@ public class Cpu6809SingleCycle extends BaseChip {
    * TODO: Check if we could use effectiveAddress instead.
    */
   private int vector;
+
+  // Variables used by CWAI.
+  private int ccMask = 0;
+  private int vectorAddressHi = 0;
+  private int vectorAddressLo = 0;
   
   // Used by a set of instruction steps needs to be executed in the middle of another 
   // set. This is usually for the Indexed Mode.
@@ -217,14 +222,24 @@ public class Cpu6809SingleCycle extends BaseChip {
     while (instructionCycleNum != 1) {
       emulateCycle();
     }
-    int instructionBeingExecuted = instructionRegister;
+    
+    int lastInstructionRegister = instructionRegister;
+    int lastInstructionCycleNum = instructionCycleNum;
+    int lastProgramCounter = programCounter;
+    
     // Keep emulating cycles until the instruction changes.
     do {
+      lastInstructionRegister = instructionRegister;
+      lastInstructionCycleNum = instructionCycleNum;
+      lastProgramCounter = programCounter;
       emulateCycle();
-    } while ((instructionCycleNum > 1) || ((instructionRegister >= 0x1200) && (instructionRegister < 0x1300)));
-    // Remove the extra increment from the fetch of the next instruction.
-    programCounter--;
-    instructionRegister = instructionBeingExecuted;
+    } while ((instructionCycleNum > 1) || ((instructionRegister >= 0x1200) && (instructionRegister < 0x1300))); // Ignores INDEXED mode instruction change.
+    
+    // Rollback the opcode fetch that was done at the end of the instruction so that we're 
+    // at the end of the instruction we were running rather than the start of the next.
+    programCounter = lastProgramCounter;
+    instructionRegister = lastInstructionRegister;
+    instructionCycleNum = lastInstructionCycleNum;
   }
   
   /**
@@ -2736,11 +2751,8 @@ public class Cpu6809SingleCycle extends BaseChip {
         // | 3C 0060 | CWAI | INHERENT | 21 | 2 | ddddd |
         // | AND CCR, Wait for int. | CC=CC&n,E=1,
         // | cwai 3c ? 2 -- - - -- - - -- - - -- - - cc&=im;wait 7 6 6 6 6 6
-        int ccMask = 0;
-        int vectorAddressHi = 0;
-        int vectorAddressLo = 0;
         switch (instructionCycleNum++) {
-        // FETCH_OPCODE_PC
+          // FETCH_OPCODE_PC
           case 0:
             // Opcode already fetched in the default case of the previous
             // instruction.
@@ -2804,17 +2816,17 @@ public class Cpu6809SingleCycle extends BaseChip {
 
           // WRITE_DP_REGISTER_SP
           case 12:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (directPageRegister & 0xff));
             break;
 
           // WRITE_B_REGISTER_SP
           case 13:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (accumulatorB & 0xff));
             break;
 
           // WRITE_A_REGISTER_SP
           case 14:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (accumulatorA & 0xff));
             break;
 
           // WRITE_CC_REGISTER_SP
@@ -12787,7 +12799,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF
           case 2:
             fetch(0xffff);
-            entireFlag = true;
+            entireFlag = false;
             break;
 
           // WRITE_PC_LOW_SP
@@ -12898,17 +12910,17 @@ public class Cpu6809SingleCycle extends BaseChip {
 
           // WRITE_DP_REGISTER_SP
           case 11:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (directPageRegister & 0xff));
             break;
 
           // WRITE_B_REGISTER_SP
           case 12:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (accumulatorB & 0xff));
             break;
 
           // WRITE_A_REGISTER_SP
           case 13:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (accumulatorA & 0xff));
             break;
 
           // WRITE_CC_REGISTER_SP
@@ -13008,17 +13020,17 @@ public class Cpu6809SingleCycle extends BaseChip {
 
           // WRITE_DP_REGISTER_SP
           case 11:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (directPageRegister & 0xff));
             break;
 
           // WRITE_B_REGISTER_SP
           case 12:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (accumulatorB & 0xff));
             break;
 
           // WRITE_A_REGISTER_SP
           case 13:
-            write(--stackPointer, (indexRegisterX & 0xff));
+            write(--stackPointer, (accumulatorA & 0xff));
             break;
 
           // WRITE_CC_REGISTER_SP
@@ -13122,6 +13134,42 @@ public class Cpu6809SingleCycle extends BaseChip {
       }
     }
 
+  }
+  
+  public void signalIRQ(boolean state) {
+    if (state) {
+      interruptStatus |= S_IRQ;
+    } else {
+      interruptStatus &= ~S_IRQ;
+    }
+  }
+  
+  public void signalFIRQ(boolean state) {
+    if (state) {
+      interruptStatus |= S_FIRQ;
+    } else {
+      interruptStatus &= ~S_FIRQ;
+    }
+  }
+  
+  public void signalNMI(boolean state) {
+    if (state) {
+      interruptStatus |= S_NMI;
+    } else {
+      interruptStatus &= ~S_NMI;
+    }
+  }
+  
+  public boolean isIRQActive() {
+    return (interruptStatus & S_IRQ) != 0;
+  }
+  
+  public boolean isNMIActive() {
+    return (interruptStatus & S_NMI) != 0;
+  }
+  
+  public boolean isFIRQActive() {
+    return (interruptStatus & S_FIRQ) != 0;
   }
   
   private void addd(int inputDataLatch) {

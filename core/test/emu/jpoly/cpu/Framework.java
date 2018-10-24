@@ -29,6 +29,8 @@ public class Framework {
       public int getI();
       public int getH();
       public boolean isSetE();
+	  public void setI(boolean b);
+	  public boolean isSetI();
     }
   
     public interface Bus {
@@ -157,6 +159,14 @@ public class Framework {
         public boolean isSetE() {
           return isEntireFlag();
         }
+		@Override
+		public void setI(boolean b) {
+          setIrqDisableFlag(b);
+		}
+		@Override
+		public boolean isSetI() {
+          return isIrqDisableFlag();
+		}
       };
             
       public int read(int address) {

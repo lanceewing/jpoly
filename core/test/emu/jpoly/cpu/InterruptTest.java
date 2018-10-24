@@ -214,15 +214,13 @@ public class InterruptTest extends Framework {
         
         // We start executing cycles, which should keep running forever in theory,
         // because CWAI waits for an interrupt.
-        for (int i=0; i<1000; i++) {
-          myTestCPU.emulateCycle();
-        }
+        myTestCPU.emulateCycles(1000);
         
         // Now signal the IRQ.
         myTestCPU.getBus().signalIRQ(true);
         
         // The CWAI should now complete, and PC will be pointing at IRQ vector.
-        myTestCPU.execute();
+        myTestCPU.emulateCycles(4);
         
         assertEquals(0x1234, myTestCPU.pc.intValue());
         myTestCPU.getBus().signalIRQ(false);
@@ -246,165 +244,186 @@ public class InterruptTest extends Framework {
         assertEquals(0x82, myTestCPU.read(517 - 12)); // Check that CC was pushed.
     }
 
-//    /**
-//     * Test that ignore IRQ works.
-//     */
-//    @Test
-//    public void ignoreIRQ() {
-//        myTestCPU.cc.setI(true);
-//        myTestCPU.write(0x1234, 0x12); // NOP
-//        myTestCPU.write(0x1235, 0x3B); // RTI
-//        myTestCPU.write(0xB00, 0x12); // NOP
-//        myTestCPU.write(0xB01, 0x12); // NOP
-//        myTestCPU.write(0xB02, 0x12); // NOP
-//        myTestCPU.getBus().signalIRQ(true);
-//        myTestCPU.execute();
-//        assertEquals(0xB01, myTestCPU.pc.intValue());
-//        myTestCPU.cc.setI(false); // IRQ is still raised. Should trigger now
-//        myTestCPU.execute();
-//        assertEquals(0x1234, myTestCPU.pc.intValue());
-//        myTestCPU.execute();
-//        assertEquals(0x1235, myTestCPU.pc.intValue());
-//        assertTrue(myTestCPU.cc.isSetI()); // Check that I-flag is true.
-//        myTestCPU.getBus().signalIRQ(false);
-//        myTestCPU.execute();  // Get RTI
-//        assertFalse(myTestCPU.cc.isSetI()); // Check I-flag
-//    }
-//
-//    /**
-//     * Test that IRQ is run again if it isn't lowered
-//     */
-//    @Test
-//    public void irqNotLowered() {
-//        myTestCPU.write(0x1234, 0x12); // NOP
-//        myTestCPU.write(0x1235, 0x3B); // RTI
-//        myTestCPU.write(0xB00, 0x12); // NOP
-//        myTestCPU.write(0xB01, 0x12); // NOP
-//        myTestCPU.write(0xB02, 0x12); // NOP
-//        myTestCPU.getBus().signalIRQ(true);
-//        myTestCPU.execute();
-//        assertEquals(0x1234, myTestCPU.pc.intValue());
-//        myTestCPU.execute();  // Get NOP
-//        assertEquals(0x1235, myTestCPU.pc.intValue());
-//        assertTrue(myTestCPU.cc.isSetI()); // Check that I-flag is true.
-//        myTestCPU.execute();  // Get RTI
-//        assertEquals(0x1234, myTestCPU.pc.intValue());
-//        myTestCPU.execute();  // Get NOP
-//        myTestCPU.getBus().signalIRQ(false);
-//    }
-//
-//    /**
-//     * Test sync.
-//     * IRQ is already asserted before sync is entered, but inhibit IRQ is on.
-//     */
-//    @Test
-//    public void sync1() {
-//        // Set register S to point to 517
-//        myTestCPU.s.set(517);
-//        // Set the registers we want to push
-//        myTestCPU.cc.set(0x5F);  // Inhibit FIRQ and IRQ
-//        setA(1);
-//        setB(2);
-//        myTestCPU.dp.set(3);
-//        setX(0x0405);
-//        setY(0x0607);
-//        myTestCPU.u.set(0x0809);
-//
-//        myTestCPU.pc.set(0xB00);
-//        myTestCPU.write(0xB00, 0x13); // SYNC
-//        myTestCPU.write(0xB01, 0x12); // NOP
-//        myTestCPU.write(0xB02, 0x12); // NOP
-//        myTestCPU.write(0xB03, 0x12); // NOP
-//        myTestCPU.getBus().signalIRQ(true);
-//        myTestCPU.execute();   // Execute sync
-//        assertEquals(0xB01, myTestCPU.pc.intValue());
-//        myTestCPU.getBus().signalIRQ(false);
-//        assertEquals(0xB01, myTestCPU.pc.intValue());
-//        assertEquals(0x5F, myTestCPU.cc.intValue()); // Flag E is off by FIRQ
-//        assertEquals(0x01, myTestCPU.a.intValue());
-//        assertEquals(0x02, myTestCPU.b.intValue());
-//        assertEquals(517, myTestCPU.s.intValue());
-//    }
-//
-//    /**
-//     * Test sync.
-//     * IRQ will be asserted a few milliseconds afterwards in a separate thread.
-//     */
-//    @Test
-//    public void sync2() {
-//        // Set register S to point to 517
-//        myTestCPU.s.set(517);
-//        // Set the registers we want to push
-//        myTestCPU.cc.set(0x5F);  // Inhibit FIRQ and IRQ
-//        setA(1);
-//        setB(2);
-//        myTestCPU.dp.set(3);
-//        setX(0x0405);
-//        setY(0x0607);
-//        myTestCPU.u.set(0x0809);
-//
-//        myTestCPU.pc.set(0xB00);
-//        myTestCPU.write(0xB00, 0x13); // SYNC
-//        myTestCPU.write(0xB01, 0x12); // NOP
-//        myTestCPU.write(0xB02, 0x12); // NOP
-//        myTestCPU.write(0xB03, 0x12); // NOP
-//        Timer timer = new Timer();
-//        SendIRQ irqTask = new SendIRQ();
-//        timer.schedule(irqTask, 100); // miliseconds
-//        myTestCPU.execute();   // Execute sync
-//        assertEquals(0xB01, myTestCPU.pc.intValue());
-//        myTestCPU.getBus().signalIRQ(false);
-//        assertEquals(0xB01, myTestCPU.pc.intValue());
-//        assertEquals(0x5F, myTestCPU.cc.intValue()); // Flag E is off by FIRQ
-//        assertEquals(0x01, myTestCPU.a.intValue());
-//        assertEquals(0x02, myTestCPU.b.intValue());
-//        assertEquals(517, myTestCPU.s.intValue());
-//    }
-//
-//    /**
-//     * Test sync without inhibit IRQ.
-//     * IRQ will be asserted a few milliseconds afterwards in a separate thread.
-//     */
-//    @Test
-//    public void sync3() {
-//        // Set register S to point to 517
-//        myTestCPU.s.set(517);
-//        // Set the registers we want to push
-//        myTestCPU.cc.set(0x4F);  // Inhibit FIRQ only
-//        setA(1);
-//        setB(2);
-//        myTestCPU.dp.set(3);
-//        setX(0x0405);
-//        setY(0x0607);
-//        myTestCPU.u.set(0x0809);
-//
-//        myTestCPU.pc.set(0xB00);
-//        myTestCPU.write(0xB00, 0x13); // SYNC
-//        myTestCPU.write(0xB01, 0x12); // NOP
-//        myTestCPU.write(0xB02, 0x12); // NOP
-//        myTestCPU.write(0xB03, 0x12); // NOP
-//        Timer timer = new Timer();
-//        SendIRQ irqTask = new SendIRQ();
-//        timer.schedule(irqTask, 100); // miliseconds
-//        myTestCPU.execute();   // Execute sync
-//        assertEquals(0x1234, myTestCPU.pc.intValue());
-//        myTestCPU.getBus().signalIRQ(false);
-//        assertEquals(0xDF, myTestCPU.cc.intValue()); // Flags E,I,F are on while in IRQ
-//        assertEquals(0x01, myTestCPU.a.intValue());
-//        assertEquals(0x02, myTestCPU.b.intValue());
-//        assertEquals(505, myTestCPU.s.intValue());
-//        assertEquals(0x01, myTestCPU.read(517 - 1)); // Check that PC-low was pushed.
-//        assertEquals(0x0B, myTestCPU.read(517 - 2)); // Check that PC-high was pushed.
-//        assertEquals(0x09, myTestCPU.read(517 - 3)); // Check that U-low was pushed.
-//        myTestCPU.execute();   // Execute RTI
-//        assertEquals(0xB01, myTestCPU.pc.intValue());
-//        assertEquals(0xCF, myTestCPU.cc.intValue());  // Flag E is on by IRQ
-//        assertEquals(517, myTestCPU.s.intValue());
-//    }
-//
-//    private class SendIRQ extends TimerTask {
-//        public void run() {
-//            myTestCPU.getBus().signalIRQ(true); // Execute a hardware interrupt
-//        }
-//    }
+    /**
+     * Test that ignore IRQ works.
+     */
+    @Test
+    public void ignoreIRQ() {
+        myTestCPU.cc.setI(true);   // Disable IRQs.
+        
+        myTestCPU.write(0x1234, 0x12); // NOP
+        myTestCPU.write(0x1235, 0x3B); // RTI
+        
+        myTestCPU.write(0xB00, 0x12); // NOP
+        myTestCPU.write(0xB01, 0x12); // NOP
+        myTestCPU.write(0xB02, 0x12); // NOP
+        
+        myTestCPU.emulateCycle();
+        myTestCPU.getBus().signalIRQ(true);
+        myTestCPU.execute();              // This will complete the first NOP.
+       
+        // Check that IRQ was ignored, and that we're at the next instruction.
+        assertEquals(0xB01, myTestCPU.pc.intValue());
+        
+        myTestCPU.cc.setI(false); // IRQ is still raised. Should trigger now
+        myTestCPU.execute();                   // Try to execute second NOP. IRQ will be recognised this time.
+        
+        // PC should be at the IRQ routine.
+        assertEquals(0x1234, myTestCPU.pc.intValue());
+        myTestCPU.execute();                   // Runs the NOP, which is first instruction in IRQ routine.
+        
+        assertEquals(0x1235, myTestCPU.pc.intValue());
+        assertTrue(myTestCPU.cc.isSetI()); // Check that I-flag is true.
+        myTestCPU.getBus().signalIRQ(false);
+        myTestCPU.execute();  // Get RTI
+        assertFalse(myTestCPU.cc.isSetI()); // Check I-flag
+        assertEquals(0xB01, myTestCPU.pc.intValue());
+        myTestCPU.execute();
+        assertEquals(0xB02, myTestCPU.pc.intValue());
+    }
+
+    /**
+     * Test that IRQ is run again if it isn't lowered
+     */
+    @Test
+    public void irqNotLowered() {
+        myTestCPU.write(0x1234, 0x12); // NOP
+        myTestCPU.write(0x1235, 0x3B); // RTI
+        myTestCPU.write(0xB00, 0x12); // NOP
+        myTestCPU.write(0xB01, 0x12); // NOP
+        myTestCPU.write(0xB02, 0x12); // NOP
+        myTestCPU.getBus().signalIRQ(true);
+        myTestCPU.execute();
+        assertEquals(0x1234, myTestCPU.pc.intValue());
+        myTestCPU.execute();  // Get NOP
+        assertEquals(0x1235, myTestCPU.pc.intValue());
+        assertTrue(myTestCPU.cc.isSetI()); // Check that I-flag is true.
+        myTestCPU.execute();  // Get RTI
+        myTestCPU.execute();  // Attempt to execute NOP. IRQ kicks in instead.
+        assertEquals(0x1234, myTestCPU.pc.intValue());
+        myTestCPU.execute();  // Get NOP
+        myTestCPU.getBus().signalIRQ(false);
+    }
+
+    /**
+     * Test sync.
+     * IRQ is already asserted before sync is entered, but inhibit IRQ is on.
+     */
+    @Test
+    public void sync1() {
+        // Set register S to point to 517
+        myTestCPU.s.set(517);
+        // Set the registers we want to push
+        myTestCPU.cc.set(0x5F);  // Inhibit FIRQ and IRQ
+        setA(1);
+        setB(2);
+        myTestCPU.dp.set(3);
+        setX(0x0405);
+        setY(0x0607);
+        myTestCPU.u.set(0x0809);
+
+        myTestCPU.pc.set(0xB00);
+        myTestCPU.write(0xB00, 0x13); // SYNC
+        myTestCPU.write(0xB01, 0x12); // NOP
+        myTestCPU.write(0xB02, 0x12); // NOP
+        myTestCPU.write(0xB03, 0x12); // NOP
+        myTestCPU.getBus().signalIRQ(true);
+        myTestCPU.execute();   // Execute sync
+        
+        // The fact that the above execute returned means the SYNC saw the IRQ.
+        // SYNC doesn't are if the IRQ disable flag is on.
+        assertEquals(0xB01, myTestCPU.pc.intValue());
+        myTestCPU.getBus().signalIRQ(false);
+        assertEquals(0xB01, myTestCPU.pc.intValue());
+        assertEquals(0x5F, myTestCPU.cc.intValue());
+        assertEquals(0x01, myTestCPU.a.intValue());
+        assertEquals(0x02, myTestCPU.b.intValue());
+        assertEquals(517, myTestCPU.s.intValue());
+    }
+
+    /**
+     * Test sync.
+     * IRQ will be asserted a few milliseconds afterwards in a separate thread.
+     */
+    @Test
+    public void sync2() {
+        // Set register S to point to 517
+        myTestCPU.s.set(517);
+        // Set the registers we want to push
+        myTestCPU.cc.set(0x5F);  // Inhibit FIRQ and IRQ
+        setA(1);
+        setB(2);
+        myTestCPU.dp.set(3);
+        setX(0x0405);
+        setY(0x0607);
+        myTestCPU.u.set(0x0809);
+
+        myTestCPU.pc.set(0xB00);
+        myTestCPU.write(0xB00, 0x13); // SYNC
+        myTestCPU.write(0xB01, 0x12); // NOP
+        myTestCPU.write(0xB02, 0x12); // NOP
+        myTestCPU.write(0xB03, 0x12); // NOP
+        Timer timer = new Timer();
+        SendIRQ irqTask = new SendIRQ();
+        timer.schedule(irqTask, 500); // miliseconds
+        myTestCPU.execute();   // Execute sync 
+        
+        // IF we get here, then the SYNC reacted to the thread raising the IRQ.
+        assertEquals(0xB01, myTestCPU.pc.intValue());
+        myTestCPU.getBus().signalIRQ(false);
+        assertEquals(0xB01, myTestCPU.pc.intValue());
+        assertEquals(0x5F, myTestCPU.cc.intValue()); // Flag E is off by FIRQ
+        assertEquals(0x01, myTestCPU.a.intValue());
+        assertEquals(0x02, myTestCPU.b.intValue());
+        assertEquals(517, myTestCPU.s.intValue());
+    }
+
+    /**
+     * Test sync without inhibit IRQ.
+     * IRQ will be asserted a few milliseconds afterwards in a separate thread.
+     */
+    @Test
+    public void sync3() {
+        // Set register S to point to 517
+        myTestCPU.s.set(517);
+        // Set the registers we want to push
+        myTestCPU.cc.set(0x4F);  // Inhibit FIRQ only
+        setA(1);
+        setB(2);
+        myTestCPU.dp.set(3);
+        setX(0x0405);
+        setY(0x0607);
+        myTestCPU.u.set(0x0809);
+
+        myTestCPU.pc.set(0xB00);
+        myTestCPU.write(0xB00, 0x13); // SYNC
+        myTestCPU.write(0xB01, 0x12); // NOP
+        myTestCPU.write(0xB02, 0x12); // NOP
+        myTestCPU.write(0xB03, 0x12); // NOP
+        Timer timer = new Timer();
+        SendIRQ irqTask = new SendIRQ();
+        timer.schedule(irqTask, 500); // miliseconds
+        myTestCPU.execute();   // Execute sync
+        myTestCPU.execute();   // Execute IRQ
+        
+        assertEquals(0x1234, myTestCPU.pc.intValue());
+        myTestCPU.getBus().signalIRQ(false);
+        assertEquals(0xDF, myTestCPU.cc.intValue()); // Flags E,I,F are on while in IRQ
+        assertEquals(0x01, myTestCPU.a.intValue());
+        assertEquals(0x02, myTestCPU.b.intValue());
+        assertEquals(505, myTestCPU.s.intValue());
+        assertEquals(0x01, myTestCPU.read(517 - 1)); // Check that PC-low was pushed.
+        assertEquals(0x0B, myTestCPU.read(517 - 2)); // Check that PC-high was pushed.
+        assertEquals(0x09, myTestCPU.read(517 - 3)); // Check that U-low was pushed.
+        myTestCPU.execute();   // Execute RTI
+        assertEquals(0xB01, myTestCPU.pc.intValue());
+        assertEquals(0xCF, myTestCPU.cc.intValue());  // Flag E is on by IRQ
+        assertEquals(517, myTestCPU.s.intValue());
+    }
+
+    private class SendIRQ extends TimerTask {
+        public void run() {
+            myTestCPU.getBus().signalIRQ(true); // Execute a hardware interrupt
+        }
+    }
 }

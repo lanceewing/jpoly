@@ -925,7 +925,7 @@ public class Cpu6809SingleCycle extends BaseChip {
 
             // WHILE_INTERRUPT_NOT_PRESENT
             
-            if (((interruptStatus & S_NMI) != 0) || ((interruptStatus & S_FIRQ) != 0) || ((interruptStatus & S_IRQ) != 0)) {
+            if (!(((interruptStatus & S_NMI) != 0) || ((interruptStatus & S_FIRQ) != 0) || ((interruptStatus & S_IRQ) != 0))) {
               // No interrupt. Decrement by 1 so that we stay in this wait state.
               instructionCycleNum = instructionCycleNum - 1;
             }

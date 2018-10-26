@@ -8757,12 +8757,12 @@ public class Cpu6809SingleCycle extends BaseChip {
         // | Load User stack ptr | U=s
         // | ldu ce 3 3 de 4 2 ee 5 2 fe 5 3 -- - - u=m - - x x 0 -
         switch (instructionCycleNum++) {
-        // FETCH_OPCODE_PC
+          // FETCH_OPCODE_PC
           case 0:
             // Opcode already fetched in the default case of the previous
             // instruction.
 
-            // FETCH_POST_BYTE_PC
+          // FETCH_POST_BYTE_PC
           case 1:
             postByte = fetch(programCounter++);
 

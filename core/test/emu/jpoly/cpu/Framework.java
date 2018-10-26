@@ -290,17 +290,21 @@ public class Framework {
     /**
      * Load a short program into memory.
      */
-    public void loadProg(int[] instructions) {
-      writeword(0xfffe, LOCATION);
+    public void loadProg(int[] instructions, int location) {
+      writeword(0xfffe, location);
       int respc = read_word(0xfffe);
-      assertEquals(LOCATION, respc);
+      assertEquals(location, respc);
 
       for (int i = 0; i < instructions.length; i++) {
-        writebyte(i + LOCATION, instructions[i]);
+        writebyte(i + location, instructions[i]);
       }
 
       myTestCPU.reset();           // Set's up for the hardware RESET instruction steps.
       myTestCPU.emulateCycles(7);  // Executes the hardware RESET instruction steps.
+    }
+    
+    public void loadProg(int[] instructions) {
+    	loadProg(instructions, LOCATION);
     }
     
     protected void chkCC_A_B_DP_X_Y_S_U(int cc, int a, int b, int dp, int x, int y, int s, int u) {

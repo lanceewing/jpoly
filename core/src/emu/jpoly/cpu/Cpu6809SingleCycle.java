@@ -4259,11 +4259,11 @@ public class Cpu6809SingleCycle extends BaseChip {
 
             // BASED_ON_INDEX_MODE (EXECUTE)
             instructionRegister = indexModeSteps(postByte);
-            programCounter = effectiveAddress;
             break;
 
           // FETCH_OPCODE_PC (NEXT INSTRUCTION)
           default:
+            programCounter = effectiveAddress;  // Unusual, in that there is no additional cycle to set EA after returning from Index mode steps.
             instructionRegister = interruptOrFetch();
             instructionCycleNum = 1;
             break;
@@ -13240,6 +13240,7 @@ public class Cpu6809SingleCycle extends BaseChip {
     else {
       instructionNum = fetch(programCounter++);
     }
+    //System.out.println(String.format("%04X ", programCounter-1));
     return instructionNum;
   }
 

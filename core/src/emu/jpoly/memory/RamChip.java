@@ -1,12 +1,29 @@
 package emu.jpoly.memory;
 
 /**
- * This class emulates a RAM chip.
+ * This class emulates an 8-bit RAM chip.
  *
  * @author Lance Ewing
  */
 public class RamChip extends MemoryMappedChip {
 
+  private int size;
+  private int[] mem;
+  
+  /**
+   * Constructor for RamChip.
+   * 
+   * @param size
+   */
+  public RamChip(int size) {
+    this.size = size;
+    this.mem = new int[size];
+    
+    for (int i = 0; i < size; i++) {
+      this.mem[i] = ((i & 128) != 0 ? 0xFF : 0);
+    }
+  }
+  
   /**
    * Reads the value of the given memory address.
    *
@@ -15,7 +32,7 @@ public class RamChip extends MemoryMappedChip {
    * @return the contents of the memory address.
    */
   public int readMemory(int address) {
-    return mem[address];
+    return mem[address % size];
   }
 
   /**
@@ -25,6 +42,6 @@ public class RamChip extends MemoryMappedChip {
    * @param value the value to write to the given address.
    */
   public void writeMemory(int address, int value) {
-    mem[address] = value;
+    mem[address % size] = (value & 0xFF);
   }
 }

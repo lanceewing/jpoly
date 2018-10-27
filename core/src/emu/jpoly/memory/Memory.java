@@ -1,6 +1,10 @@
 package emu.jpoly.memory;
 
+import com.badlogic.gdx.Gdx;
+
 import emu.jpoly.cpu.Cpu6809SingleCycle;
+import emu.jpoly.io.Acia6850;
+import emu.jpoly.io.Via6522;
 
 /**
  * This class emulators the JPoly's memory.
@@ -8,11 +12,6 @@ import emu.jpoly.cpu.Cpu6809SingleCycle;
  * @author Lance Ewing
  */
 public class Memory {
-  
-  /**
-   * Holds the machines memory.
-   */
-  private int mem[];
 
   /**
    * Holds an array of references to instances of MemoryMappedChip where each
@@ -22,34 +21,9 @@ public class Memory {
   private MemoryMappedChip memoryMap[];
   
   /**
-   * The type of BASIC ROM being used.
-   */
-  private RomType romType;
-  
-  /**
    * The Cpu6809 that will be accessing this Memory.
    */
   private Cpu6809SingleCycle cpu;
-  
-  /**
-   * Whether the BASIC ROM is disabled or not.
-   */
-  private boolean basicRomDisabled;
-  
-  /**
-   * Whether the Microdisc ROM is enabled or not.
-   */
-  private boolean diskRomEnabled;
-  
-  /**
-   * The 16 KB content of the loaded BASIC ROM.
-   */
-  private int[] basicRom;
-  
-  /**
-   * The 8 KB content of the loaded Microdisk ROM.
-   */
-  private int[] microdiscRom;
   
   /**
    * Constructor for Memory. Mainly available for unit testing.
@@ -58,12 +32,11 @@ public class Memory {
    * @param allRam true if memory should be initialised to all RAM; otherwise false.
    */
   public Memory(Cpu6809SingleCycle cpu, boolean allRam) {
-    this.mem = new int[65536];
     this.memoryMap = new MemoryMappedChip[65536];
     this.cpu = cpu;
     cpu.setMemory(this);
     if (allRam) {
-      mapChipToMemory(new RamChip(), 0x0000, 0xFFFF);
+      mapChipToMemory(new RamChip(0x10000), 0x0000, 0xFFFF);
     }
   }
   
@@ -78,15 +51,60 @@ public class Memory {
   }
 
   /**
+   * Initialises the memory in such a way as to emulate Grant Searle's Simple6809 computer. An
+   * amazingly concise 6809 computer that I think deserves to be a test architecture for any 
+   * new 6809 emulation. Check out Grant's Simple6809 web page here:
+   * 
+   * http://searle.hostei.com/grant/6809/Simple6809.html
+   */
+  public void initGrantSearleSimple6809Memory(Acia6850 acia) {
+    //    0000-7FFF 32K RAM (A15 == 0)
+    mapChipToMemory(new RamChip(0x8000), 0x0000, 0x7FFF);
+    
+    //    8000-9FFF FREE SPACE (8K)
+    mapChipToMemory(new UnconnectedMemory(), 0x8000, 0x9FFF);
+    
+    //    A000-BFFF SERIAL INTERFACE (minimally decoded) (A15 == 1, A14 == 0, A13 == 1) 101X XXXX XXXX XXX0/1
+    mapChipToMemory(acia, 0xA000, 0xBFFF);
+    
+    //    C000-FFFF 16K ROM (BASIC from DB00 TO FFFF, so a large amount of free space suitable for a monitor etc) (A14 == 1 && A15 == 1)
+    mapChipToMemory(new RomChip(convertByteArrayToIntArray(Gdx.files.internal("roms/ExBasROM.bin").readBytes())), 0xC000, 0xFFFF);
+  }
+  
+  /**
+   * Initialises the memory map for Vectrex emulation.
+   */
+  public void initVectrexMemory(Via6522 via) {
+    // 0000-7fff Cartridge ROM Space. Without a cartridge, it is unconnected.
+    mapChipToMemory(new UnconnectedMemory(), 0x0000, 0x7FFF);
+
+    // 8000-C7FF Unmapped space.
+    mapChipToMemory(new UnconnectedMemory(), 0x8000, 0xC7FF);
+
+    // C800-CFFF Vectrex RAM Space 1Kx8, shadowed twice. (r/w)
+    RamChip ram = new RamChip(0x0400);
+    mapChipToMemory(ram, 0xC800, 0xCFFF);
+    
+    // D000-D7FF 6522 VIA shadowed 128 times (r/w)
+    mapChipToMemory(via, 0xD000, 0xD7FF);
+
+    // D800-DFFF Don't use this area. Both the 6522 and RAM are selected in any reads/writes to this area.
+    NotFullyDecodedMemory ramAndVia = new NotFullyDecodedMemory(new MemoryMappedChip[] { ram, via});
+    mapChipToMemory(ramAndVia, 0xD800, 0xDFFF);
+
+    // [A15 == 1 && A14 == 1 && A13 == 1] 
+    // E000-FFFF System ROM Space 8Kx8 (r/w)
+    // E000-EFFF is ROM, the built in game MINE STORM.
+    // F000-FFFF Executive (power-up / reset handler and a large selection of subroutines for drawing, calculation, game logic and / or hardware maintenance)
+    mapChipToMemory(new RomChip(convertByteArrayToIntArray(Gdx.files.internal("roms/vectrex_rom.bin").readBytes())), 0xE000, 0xFFFF);
+  }
+  
+  /**
    * Initialise the Poly's memory.
    */
-  private void initPolyMemory() {
-    // The initial RAM pattern cannot simply be all zeroes.
-    for (int i = 0; i <= 0xFFFF; ++i) {
-      this.mem[i] = ((i & 128) != 0 ? 0xFF : 0);
-    }
-    
+  public void initPolyMemory() {
 
+    
   }
   
   /**
@@ -105,36 +123,13 @@ public class Memory {
   }
   
   /**
-   * Maps the given chip instance at the given address range.
+   * Maps the given chip instance at the given add.lengthress range.
    * 
    * @param chip The chip to map at the given address range.
    * @param startAddress The start of the address range.
    * @param endAddress The end of the address range.
    */
-  private void mapChipToMemory(MemoryMappedChip chip, int startAddress, int endAddress) {
-    mapChipToMemory(chip, startAddress, endAddress, null);
-  }
-  
-  /**
-   * Maps the given chip instance at the given address range, optionally loading the
-   * given initial state data into that address range. This state data is intended to be
-   * used for things such as ROM images (e.g. char, kernel, basic).
-   * 
-   * @param chip The chip to map at the given address range.
-   * @param startAddress The start of the address range.
-   * @param endAddress The end of the address range.
-   * @param state byte array containing initial state (can be null).
-   */
-  private void mapChipToMemory(MemoryMappedChip chip, int startAddress, int endAddress, byte[] state) {
-    int statePos = 0;
-    
-    // Load the initial state into memory if provided.
-    if (state != null) {
-      for (int i=startAddress; i<=endAddress; i++) {
-        mem[i] = (state[statePos++] & 0xFF);
-      }
-    }
-    
+  public void mapChipToMemory(MemoryMappedChip chip, int startAddress, int endAddress) {
     // Configure the chip into the memory map between the given start and end addresses.
     for (int i = startAddress; i <= endAddress; i++) {
       memoryMap[i] = chip;
@@ -144,126 +139,12 @@ public class Memory {
   }
   
   /**
-   * Gets the BASIC ROM type being used.
-   * 
-   * @return The BASIC ROM type being used.
-   */
-  public RomType getRomType() {
-    return romType;
-  }
-  
-  /**
-   * Enum representing the different BASIC ROM types supported by JOric. It holds
-   * the details that are specific to a particular ROM type, such as start addresses
-   * of various ROM routines or RAM addresses used by those ROM routines.
-   */
-  public static enum RomType {
-    
-    ATMOS(0xC592, 0xE6C9, 0xE735, 0x027F, 0x0293, 0x02A7, 0xE65E, 0xE75E, 0x024D, 0xE6FB), 
-    ORIC1(0xC5A2, 0xE630, 0xE696, 0x0035, 0x0049, 0x005D, 0xE5C6, 0xE6BE, 0x0067, 0xE65D),  
-    CUSTOM(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
-    DISABLED(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    
-    private int addressOfInputLineFromKeyboard;   // Used to automatically run small snippets of BASIC
-    private int addressOfReadByteFromTape;
-    private int addressOfGetInSyncWithTapeData;
-    private int addressOfFileToLoadFromTape; 
-    private int addressOfFileLoadedFromTape;
-    private int addressOfTapeHeader;
-    private int addressOfOutputByteToTape;
-    private int addressOfOutputTapeLeader;
-    private int addressOfTapeSpeed;                // 0 = fast, >= 1 = slow
-    private int addressOfRTS;                      // Used by subroutine traps as a miscellaneous RTS address to position PC at after running trap.
-    
-    /**
-     * Constructor for RomType.
-     * 
-     * @param addressOfInputLineFromKeyboard
-     * @param addressOfReadByteFromTape
-     * @param addressOfGetInSyncWithTapeData
-     * @param addressOfFileToLoadFromTape
-     * @param addressOfFileLoadedFromTape
-     * @param addressOfTapeHeader
-     * @param addressOfOutputByteToTape
-     * @param addressOfOutputTapeLeader
-     * @param addressOfTapeSpeed
-     * @param addressOfRTS
-     */
-    RomType(int addressOfInputLineFromKeyboard, int addressOfReadByteFromTape, 
-            int addressOfGetInSyncWithTapeData, int addressOfFileToLoadFromTape, 
-            int addressOfFileLoadedFromTape, int addressOfTapeHeader,
-            int addressOfOutputByteToTape, int addressOfOutputTapeLeader,
-            int addressOfTapeSpeed, int addressOfRTS) {
-      
-      this.addressOfInputLineFromKeyboard = addressOfInputLineFromKeyboard;
-      this.addressOfReadByteFromTape = addressOfReadByteFromTape;
-      this.addressOfGetInSyncWithTapeData = addressOfGetInSyncWithTapeData;
-      this.addressOfFileToLoadFromTape = addressOfFileToLoadFromTape;
-      this.addressOfFileLoadedFromTape = addressOfFileLoadedFromTape;
-      this.addressOfTapeHeader = addressOfTapeHeader;
-      this.addressOfOutputByteToTape = addressOfOutputByteToTape;
-      this.addressOfOutputTapeLeader = addressOfOutputTapeLeader;
-      this.addressOfTapeSpeed = addressOfTapeSpeed;
-      this.addressOfRTS = addressOfRTS;
-    }
-
-    public int getAddressOfInputLineFromKeyboard() {
-      return addressOfInputLineFromKeyboard;
-    }
-
-    public int getAddressOfReadByteFromTape() {
-      return addressOfReadByteFromTape;
-    }
-
-    public int getAddressOfGetInSyncWithTapeData() {
-      return addressOfGetInSyncWithTapeData;
-    }
-
-    public int getAddressOfFileToLoadFromTape() {
-      return addressOfFileToLoadFromTape;
-    }
-
-    public int getAddressOfFileLoadedFromTape() {
-      return addressOfFileLoadedFromTape;
-    }
-
-    public int getAddressOfTapeHeader() {
-      return addressOfTapeHeader;
-    }
-
-    public int getAddressOfOutputByteToTape() {
-      return addressOfOutputByteToTape;
-    }
-
-    public int getAddressOfOutputTapeLeader() {
-      return addressOfOutputTapeLeader;
-    }
-
-    public int getAddressOfTapeSpeed() {
-      return addressOfTapeSpeed;
-    }
-
-    public int getAddressOfRTS() {
-      return addressOfRTS;
-    }
-  }
-  
-  /**
-   * Loads a ROM file from the given byte array in to the BASIC ROM area.
+   * Loads a ROM file from the given byte array at the given memory address.
    * 
    * @param romData The byte array containing the ROM program data to load.
    */
-  public void loadCustomRom(byte[] romData) {
-    mapChipToMemory(new RomChip(), 0xC000, 0xC000 + (romData.length - 1), romData);
-  }
-  
-  /**
-   * Gets the int array that represents the Oric's memory.
-   * 
-   * @return an int array represents the Oric memory.
-   */
-  public int[] getMemoryArray() {
-    return mem;
+  public void loadCustomRom(int address, byte[] romData) {
+    mapChipToMemory(new RomChip(convertByteArrayToIntArray(romData)), address, address + (romData.length - 1));
   }
 
   /**
@@ -273,29 +154,6 @@ public class Memory {
    */
   public MemoryMappedChip[] getMemoryMap() {
     return memoryMap;
-  }
-  
-  /**
-   * Forces a write to a memory address, even if it is ROM. This is used mainly
-   * for setting emulation traps.
-   * 
-   * @param address The address to write the value to.
-   * @param value The value to write to the given address.
-   */
-  public void forceWrite(int address, int value) {
-    if (address < 0xC000) {
-      writeMemory(address, value);
-    } else {
-      if (basicRomDisabled) {
-        if (diskRomEnabled) {
-          microdiscRom[address - 0xE000] = value;
-        } else {
-          mem[address] = value;
-        }
-      } else {
-        basicRom[address - 0xC000] = value;
-      }
-    }
   }
   
   /**

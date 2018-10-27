@@ -7,6 +7,19 @@ package emu.jpoly.memory;
  */
 public class RomChip extends MemoryMappedChip {
 
+  private int size;
+  private int[] mem;
+  
+  /**
+   * Constructor for RomChip.
+   * 
+   * @param data The ROM chip data.
+   */
+  public RomChip(int[] data) {
+    this.size = data.length;
+    this.mem = data;
+  }
+  
   /**
    * Reads the value of the given memory address.
    *
@@ -15,7 +28,7 @@ public class RomChip extends MemoryMappedChip {
    * @return the contents of the memory address.
    */
   public int readMemory(int address) {
-    return mem[address];
+    return mem[address % size];
   }
 
   /**

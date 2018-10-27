@@ -15,12 +15,6 @@ public abstract class BaseChip {
   protected Memory memory;
 
   /**
-   * Holds a direct reference to the int array holding the machine's memory. This
-   * is often used for faster reading and writing when it is safe to do so.
-   */
-  protected int mem[];
-
-  /**
    * Holds an array of references to instances of MemoryMappedChip where each
    * instance determines the behaviour of reading or writing to the given memory
    * address.
@@ -34,7 +28,6 @@ public abstract class BaseChip {
    */
   public void setMemory(Memory memory) {
     this.memory = memory;
-    this.mem = memory.getMemoryArray();
     this.memoryMap = memory.getMemoryMap();
   }
 }

@@ -7,6 +7,19 @@ package emu.jpoly.memory;
  */
 public class NibbleRamChip extends MemoryMappedChip {
 
+  private int size;
+  private int[] mem;
+  
+  /**
+   * Constructor for NibbleRamChip.
+   * 
+   * @param size The size of the RAM chip in nibbles.
+   */
+  public NibbleRamChip(int size) {
+    this.size = size;
+    this.mem = new int[size];
+  }
+  
   /**
    * Reads the value of the given memory address.
    *
@@ -15,7 +28,7 @@ public class NibbleRamChip extends MemoryMappedChip {
    * @return the contents of the memory address.
    */
   public int readMemory(int address) {
-    return mem[address];
+    return mem[address % size];
   }
 
   /**
@@ -25,6 +38,6 @@ public class NibbleRamChip extends MemoryMappedChip {
    * @param value the value to write to the given address.
    */
   public void writeMemory(int address, int value) {
-    mem[address] = (value & 0x0F);
+    mem[address % size] = (value & 0x0F);
   }
 }

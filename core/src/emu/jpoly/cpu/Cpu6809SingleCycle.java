@@ -976,7 +976,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 3:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             programCounter = effectiveAddress;
             break;
 
@@ -1017,7 +1017,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA)
           case 3:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             break;
 
           // FETCH_IGNORE_FFFF
@@ -9547,7 +9547,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             instructionCycleNum++;
             break;
 
@@ -9592,7 +9592,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (!(carryFlag || zeroFlag)) {
               programCounter = effectiveAddress;
             } else {
@@ -9641,7 +9641,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (carryFlag || zeroFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -9691,7 +9691,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (!carryFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -9740,7 +9740,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (carryFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -9789,7 +9789,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (!zeroFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -9838,7 +9838,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (zeroFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -9887,7 +9887,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (!overflowFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -9936,7 +9936,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (overflowFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -9985,7 +9985,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (!negativeFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -10034,7 +10034,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (negativeFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -10083,7 +10083,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (!(negativeFlag ^ overflowFlag)) {
               programCounter = effectiveAddress;
             } else {
@@ -10132,7 +10132,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (negativeFlag ^ overflowFlag) {
               programCounter = effectiveAddress;
             } else {
@@ -10181,7 +10181,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (!(zeroFlag || (negativeFlag ^ overflowFlag))) {
               programCounter = effectiveAddress;
             } else {
@@ -10230,7 +10230,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA) (EXECUTE)
           case 4:
             fetch(0xffff);
-            effectiveAddress = programCounter + offset;
+            effectiveAddress = (programCounter + offset) & 0xFFFF;
             if (zeroFlag || (negativeFlag ^ overflowFlag)) {
               programCounter = effectiveAddress;
             } else {
@@ -12171,7 +12171,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA)
           case 4:
             fetch(0xffff);
-            effectiveAddress = indexedAddressModeRegister + to2C16Bit(offset);
+            effectiveAddress = (indexedAddressModeRegister + to2C16Bit(offset)) & 0xFFFF;
             instructionRegister = savedInstruction;
             instructionCycleNum = savedCycle;
             break;
@@ -12206,7 +12206,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA)
           case 4:
             fetch(0xffff);
-            effectiveAddress = indexedAddressModeRegister + to2C16Bit(getD());
+            effectiveAddress = (indexedAddressModeRegister + to2C16Bit(getD())) & 0xFFFF;
             instructionRegister = savedInstruction;
             instructionCycleNum = savedCycle;
             break;
@@ -12266,7 +12266,7 @@ public class Cpu6809SingleCycle extends BaseChip {
           // FETCH_IGNORE_FFFF (CALCULATE EA)
           case 5:
             fetch(0xffff);
-            effectiveAddress = programCounter + to2C16Bit(offset);
+            effectiveAddress = (programCounter + to2C16Bit(offset)) & 0xFFFF;
             instructionRegister = savedInstruction;
             instructionCycleNum = savedCycle;
             break;
@@ -12558,7 +12558,7 @@ public class Cpu6809SingleCycle extends BaseChip {
 
           // FETCH_INDIRECT_HIGH_IX
           case 5:
-            effectiveAddress = indexedAddressModeRegister + to2C16Bit(offset);
+            effectiveAddress = (indexedAddressModeRegister + to2C16Bit(offset)) & 0xFFFF;
             effectiveAddressHigh = fetch(effectiveAddress);
             break;
 
@@ -12609,7 +12609,7 @@ public class Cpu6809SingleCycle extends BaseChip {
 
           // FETCH_INDIRECT_HIGH_IX
           case 5:
-            effectiveAddress = indexedAddressModeRegister + to2C16Bit(getD());
+            effectiveAddress = (indexedAddressModeRegister + to2C16Bit(getD())) & 0xFFFF;
             effectiveAddressHigh = fetch(effectiveAddress);
             break;
 
@@ -12701,7 +12701,7 @@ public class Cpu6809SingleCycle extends BaseChip {
 
           // FETCH_INDIRECT_HIGH_IX
           case 6:
-            effectiveAddress = programCounter + to2C16Bit(offset);
+            effectiveAddress = (programCounter + to2C16Bit(offset)) & 0xFFFF;
             effectiveAddressHigh = fetch(effectiveAddress);
             break;
 

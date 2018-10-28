@@ -464,13 +464,26 @@ public class BranchAndJumpTest extends Framework {
 
   @Test
   public void testJMPExtended() {
-    myTestCPU.write(0xB00, 0x7E); // JMP
+    myTestCPU.write(0xB00, 0x7E); // JMP EXTENDED
     writeword(0xB01, 0x102C);
     myTestCPU.setProgramCounter(0xB00);
     myTestCPU.emulateCycles(4);
     assertEquals(0x102C, myTestCPU.getProgramCounter());
   }
 
+  @Test
+  public void testJMPIndexed() {
+    myTestCPU.write(0xB00, 0x6E); // JMP INDEXED
+    writebyte(0xB01, 0x41);       // 1,U
+    myTestCPU.setProgramCounter(0xB00);
+    myTestCPU.setUserStackPointer(0xE015);
+    myTestCPU.emulateCycles(5);
+    // Due to the way the JMP INDEXED instruction is implemented, the PC is not set until
+    // immediately before the next opcode fetch. So PC is expected to be one more than what
+    // the JMP set it to, since the next opcode was already fetched.
+    assertEquals(0xE017, myTestCPU.getProgramCounter());
+  }
+  
   @Test
   public void testRTS() {
     myTestCPU.setStackPointer(0x300);

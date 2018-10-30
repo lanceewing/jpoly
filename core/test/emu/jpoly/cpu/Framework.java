@@ -245,6 +245,37 @@ public class Framework {
         }
       };
     }
+    
+    /**
+     * Executes a single instruction within the context of a unit test. Expects it to run from first
+     * cycle of the instruction to last cycle, which is a bit different from how it runs normally. So
+     * we adjust things a bit both before and after the emulation loop.
+     */
+    public void execute() {
+      // Keep executing cycles until we reach cycle 1 of an instruciton, i.e. just after reading
+      // the next instruction. This is the instruction that we will be executing.
+      while (instructionCycleNum != 1) {
+        emulateCycle();
+      }
+      
+      int lastInstructionRegister = instructionRegister;
+      int lastInstructionCycleNum = instructionCycleNum;
+      int lastProgramCounter = programCounter;
+      
+      // Keep emulating cycles until the instruction changes.
+      do {
+        lastInstructionRegister = instructionRegister;
+        lastInstructionCycleNum = instructionCycleNum;
+        lastProgramCounter = programCounter;
+        emulateCycle();
+      } while ((instructionCycleNum > 1) || ((instructionRegister >= 0x1200) && (instructionRegister < 0x1300))); // Ignores INDEXED mode instruction change.
+      
+      // Rollback the opcode fetch that was done at the end of the instruction so that we're 
+      // at the end of the instruction we were running rather than the start of the next.
+      programCounter = lastProgramCounter;
+      instructionRegister = lastInstructionRegister;
+      instructionCycleNum = lastInstructionCycleNum;
+    }
   }
 
   public TestCPU myTestCPU;

@@ -647,6 +647,12 @@ public class AddressingModesTest extends Framework {
 	    assertEquals(0x89, myTestCPU.read(0x773F));
 	}
 	
+	 // 16n,R (negative)
+  @Test
+  public void testIndexed16BitNegativeOffsetFromRegisterWithWrapAround() {
+    // TODO: Implement.
+  }
+	
 	// 8n,PC (positive)
 	@Test
 	public void testIndexed8BitOffsetFromPC() {

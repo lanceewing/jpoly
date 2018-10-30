@@ -85,13 +85,20 @@ public class Cpu6809SingleCycle extends BaseChip {
   private int userStackPointer;
   private int indexRegisterX;
   private int indexRegisterY;
-  private int programCounter;
-  private int instructionRegister = NO_INSTRUCTION;
+  
+  protected int programCounter;
+  
+  /**
+   * Holds the op code of the instruction currently being executed. Some op codes
+   * are "fake" op codes that the emulator uses for efficiency reasons, e.g. the
+   * indexed address mode op codes, interrupt and reset op codes.
+   */
+  protected int instructionRegister = NO_INSTRUCTION;
 
   /**
    * The current cycle of the current instruction being executed.
    */
-  private int instructionCycleNum;
+  protected int instructionCycleNum;
   
   /**
    * Input data latch.
@@ -196,66 +203,6 @@ public class Cpu6809SingleCycle extends BaseChip {
   }
 
   /**
-   * Steps through a single instruction. Used mainly for unit tests and
-   * debugging CPU.
-   */
-  public void step() {
-    if (instructionCycleNum == 0) {
-      // If step is called with the cycle at 0, then it must be the very
-      // first instruction being executed. So execute one cycle to begin with.
-      emulateCycle();
-    }
-    // Keep emulating cycles until the instruction changes.
-    do {
-      emulateCycle();
-    } while (instructionCycleNum > 1);
-  }
-
-  /**
-   * Executes a single instruction within the context of a unit test. Expects it to run from first
-   * cycle of the instruction to last cycle, which is a bit different from how it runs normally. So
-   * we adjust things a bit both before and after the emulation loop.
-   */
-  public void execute() {
-    // Keep executing cycles until we reach cycle 1 of an instruciton, i.e. just after reading
-    // the next instruction. This is the instruction that we will be executing.
-    while (instructionCycleNum != 1) {
-      emulateCycle();
-    }
-    
-    int lastInstructionRegister = instructionRegister;
-    int lastInstructionCycleNum = instructionCycleNum;
-    int lastProgramCounter = programCounter;
-    
-    // Keep emulating cycles until the instruction changes.
-    do {
-      lastInstructionRegister = instructionRegister;
-      lastInstructionCycleNum = instructionCycleNum;
-      lastProgramCounter = programCounter;
-      emulateCycle();
-    } while ((instructionCycleNum > 1) || ((instructionRegister >= 0x1200) && (instructionRegister < 0x1300))); // Ignores INDEXED mode instruction change.
-    
-    // Rollback the opcode fetch that was done at the end of the instruction so that we're 
-    // at the end of the instruction we were running rather than the start of the next.
-    programCounter = lastProgramCounter;
-    instructionRegister = lastInstructionRegister;
-    instructionCycleNum = lastInstructionCycleNum;
-  }
-  
-  /**
-   * Steps through the given number of instructions. Used mainly for unit tsts
-   * and debugging the CPU.
-   * 
-   * @param numberOfInstructions
-   *          The number of instructions to step.
-   */
-  public void step(int numberOfInstructions) {
-    for (int i = 0; i < numberOfInstructions; i++) {
-      step();
-    }
-  }
-
-  /**
    * Emulates the given number of machine cycles.
    * 
    * @param numOfCycles The number of cycles to execute.
@@ -276,7 +223,7 @@ public class Cpu6809SingleCycle extends BaseChip {
 
     // START OF GENERATED CODE
 
-    // NEG DIRECT
+      // NEG DIRECT
       case 0: {
         // | 00 0000 | NEG | DIRECT | 6 | 2 | uaaaa |
         // | Negate | d=-d
